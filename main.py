@@ -7,6 +7,7 @@ import framebuf
 pLED = Pin(2, Pin.OUT)
 pTasterA = Pin(5,Pin.IN, Pin.PULL_UP)
 pTasterB = Pin(18,Pin.IN, Pin.PULL_UP)
+pTasterC = Pin(19,Pin.IN, Pin.PULL_UP)
 
 i2c = SoftI2C(scl=Pin(22), sda=Pin(21))
 gc.collect()
@@ -36,29 +37,34 @@ alpaca.hline(4, 8, 3, 1)
 ssd.blit(alpaca, 59, 27)
 ssd.show()
 
+uart = UART(2,baudrate=115200) # 16:RX 17:TX
+
+class Taster:
+    def __init__(self, pin, text):
+        self.pin = pin
+        self.text = text
+        self.was_sent = False
+    
+    def send(self):
+        if self.pin.value() == 0 and self.was_sent == False:
+            self.was_sent = True
+            uart.write(self.text)
+            print(self.text + " sent")
+        if self.pin.value() == 1:
+            self.was_sent = False
+
 
 def serialecho():
     print("serial hello started")
-    uart = UART(2,baudrate=115200) # 16:RX 17:TX
-    # uart.init(, bits=8, parity=None, stop=1)
-    # sleep_ms(100)
-    wassentA = False
-    wassentB = False
+    
+    tasterA = Taster(pTasterA,"A")
+    tasterB= Taster(pTasterB,"B")
+    tasterC = Taster(pTasterC,"C")
 
     while True:
-        if pTasterA.value() == 0 and wassentA == False:
-            wassentA = True
-            uart.write("A")
-            print("A sent")
-        if pTasterA.value() == 1:
-            wassentA = False
-
-        if pTasterB.value() == 0 and wassentB == False:
-            wassentB = True
-            uart.write("B")
-            print("B sent")
-        if pTasterB.value() == 1:
-            wassentB = False
+        tasterA.send()
+        tasterB.send()
+        tasterC.send()
 
         # sleep_ms(2000)
         pLED.value(uart.any())
