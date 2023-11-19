@@ -1,5 +1,5 @@
 from time import sleep_ms
-from machine import Pin, SPI, SoftI2C, UART
+from machine import Pin, SPI, SoftI2C, UART, ADC
 import gc
 from drivers.ssd1306.ssd1306 import SSD1306_I2C as SSD
 import framebuf
@@ -8,6 +8,8 @@ pLED = Pin(2, Pin.OUT)
 pTasterA = Pin(5,Pin.IN, Pin.PULL_UP)
 pTasterB = Pin(18,Pin.IN, Pin.PULL_UP)
 pTasterC = Pin(19,Pin.IN, Pin.PULL_UP)
+adcPotiD = ADC(4)
+adcPotiE = ADC(15)
 
 i2c = SoftI2C(scl=Pin(22), sda=Pin(21))
 gc.collect()
@@ -53,6 +55,19 @@ class Taster:
         if self.pin.value() == 1:
             self.was_sent = False
 
+class Potenziometer:
+    def __init__(self, adc, text):
+        self.adc = adc
+        self.text = text
+        self.last_value = 0
+
+    def send(self):
+        value = self.adc.read()
+        if value != self.last_value:
+            self.last_value = value
+            uart.write(self.text + str(value))
+            print(self.text + " sent ", value)
+
 
 def serialecho():
     print("serial hello started")
@@ -60,11 +75,17 @@ def serialecho():
     tasterA = Taster(pTasterA,"A")
     tasterB= Taster(pTasterB,"B")
     tasterC = Taster(pTasterC,"C")
+    
+    potiD = Potenziometer(adcPotiD, "D")
+    potiE = Potenziometer(adcPotiE, "E")
 
     while True:
         tasterA.send()
         tasterB.send()
         tasterC.send()
+
+        # potiD.send()
+        # potiE.send()
 
         # sleep_ms(2000)
         pLED.value(uart.any())
